@@ -1,5 +1,7 @@
 {
   "reviewed_on": "2026-10-21",
+  "coverage_start": "2026-01-01",
+  "coverage_end": "2030-12-31",
   "source_url": "https://www.frbservices.org/about/holiday-schedules",
   "source_note": "Observed closures for Fedwire and FedACH, derived from the 2026-2030 Federal Reserve Banks holiday table transcribed on 2026-10-21. A holiday that falls on Saturday is not moved to Friday: the Fed is open that Friday. A holiday that falls on Sunday is observed the following Monday. Weekends are closed even when they are not listed here.",
   "saturday_rule_sentence": "For holidays falling on Saturday, Federal Reserve Banks and Branches will be open the preceding Friday.",

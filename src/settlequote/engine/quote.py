@@ -8,7 +8,7 @@ does not check that. They stay in the response, marked conditional.
 import math
 import re
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from uuid import uuid4
 
@@ -132,6 +132,8 @@ def quote(
     amount = _amount(payload.get("amount_usd"))
     submitted = _submitted(payload, now)
     deadline = _deadline(payload.get("deadline"), submitted)
+    _require_holiday_coverage(submitted, rules)
+    _require_holiday_coverage(deadline, rules)
     receiver = _receiver(payload.get("receiver"))
     zone = _receiver_zone(payload.get("receiver_timezone"))
     requested = _requested(payload.get("rails"))
@@ -242,21 +244,48 @@ def _clock_phrase(hhmm: str) -> str:
     return f"{hour12}:{minute:02d} {suffix} ET"
 
 
+def _require_holiday_coverage(moment: datetime, rules: dict) -> None:
+    holidays = rules["holidays"]
+    start = date.fromisoformat(holidays["coverage_start"])
+    end = date.fromisoformat(holidays["coverage_end"])
+    day = as_et(moment).date()
+    if start <= day <= end:
+        return
+    raise QuoteError(
+        "outside_holiday_coverage",
+        f"Holiday coverage is {start.isoformat()} through {end.isoformat()}.",
+    )
+
+
 def _receiver_zone(raw: object) -> ZoneInfo:
+    message = "receiver_timezone must be a US time zone, such as America/Los_Angeles."
     if raw is None:
         return ET
-    if not isinstance(raw, str) or raw not in _US_ZONES:
-        raise QuoteError(
-            "invalid_receiver_timezone",
-            "receiver_timezone must be a US time zone, such as America/Los_Angeles.",
-        )
+    if not isinstance(raw, str) or not raw.strip():
+        raise QuoteError("invalid_receiver_timezone", message)
     try:
-        return ZoneInfo(raw)
+        zone = ZoneInfo(raw)
     except (ZoneInfoNotFoundError, ValueError) as exc:
-        raise QuoteError(
-            "invalid_receiver_timezone",
-            "receiver_timezone must be a US time zone, such as America/Los_Angeles.",
-        ) from exc
+        raise QuoteError("invalid_receiver_timezone", message) from exc
+    if zone.key in _US_ZONES or _matches_us_zone(zone):
+        return zone
+    raise QuoteError("invalid_receiver_timezone", message)
+
+
+def _matches_us_zone(zone: ZoneInfo) -> bool:
+    """True when a legacy name such as US/Eastern keeps the same clock as a listed zone.
+
+    EST is a fixed UTC-5 and does not match America/New_York in July, so it stays rejected.
+    """
+    summer = datetime(2026, 7, 1, 12, tzinfo=zone)
+    winter = datetime(2026, 1, 15, 12, tzinfo=zone)
+    for name in _US_ZONES:
+        candidate = ZoneInfo(name)
+        same_summer = summer.utcoffset() == datetime(2026, 7, 1, 12, tzinfo=candidate).utcoffset()
+        same_winter = winter.utcoffset() == datetime(2026, 1, 15, 12, tzinfo=candidate).utcoffset()
+        if same_summer and same_winter:
+            return True
+    return False
 
 
 def _receiver(raw: object) -> str:

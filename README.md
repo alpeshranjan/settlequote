@@ -26,6 +26,8 @@ A quote paid against a local MCP server is a different database and does not sho
 The settlement is a real facilitator payment of testnet USDC. Base mainnet is off. Turning the public server on to mainnet needs a Coinbase CDP API key and real Base USDC in the buyer wallet. Neither is in place, so the live 402 stays on Sepolia.
 
 How the process is split is in [docs/architecture.md](docs/architecture.md).
+See the [usage guide](docs/usage.md) for integration examples, intended users,
+limitations, and alternatives.
 
 ## Request
 
@@ -83,7 +85,7 @@ Fedwire's network open is 9:00 p.m. ET on the previous calendar day, including S
 - Quoting an originator's earlier cutoff as the Fed's. Bridge and Augustus publish their own earlier windows for their customers.
 - Treating 6:00 p.m. ET as the current Fedwire customer cutoff. The page transcribed on 2026-10-21 says 6:45 p.m. ET for a core customer transfer (`pacs.008`, CTRC), inclusive of that minute. Bank-to-bank transfers cut off at 7:00 p.m. ET and are not modeled. The sending-bank caveat is built from `customer_cutoff_local` in `windows.json`.
 
-Operator fees were transcribed on 2026-10-21 and are the 2026 Fed list prices. A quote whose `submitted_at` is more than 400 days after `reviewed_on` is still returned, with a `rules_stale` caveat.
+Operator fees were transcribed on 2026-10-21 and are the 2026 Fed list prices. A quote whose `submitted_at` is more than 400 days after `reviewed_on` is still returned, with a `rules_stale` caveat. A `submitted_at` or deadline outside the transcribed holiday years, 2026 through 2030, is rejected. `US/Eastern` is accepted because it keeps the same clock as `America/New_York`. `EST` is not, because it is a fixed UTC−5 and does not follow daylight time.
 
 ## Run locally
 

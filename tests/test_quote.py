@@ -401,7 +401,34 @@ def test_receiver_timezone_moves_ach_availability_only():
     with pytest.raises(QuoteError) as bad_zone:
         quote({**payload, "receiver_timezone": "Not/AZone"})
     assert bad_zone.value.code == "invalid_receiver_timezone"
-    for raw in ("../x", "UTC", "Asia/Tokyo"):
+    for raw in ("../x", "UTC", "Asia/Tokyo", "EST"):
         with pytest.raises(QuoteError) as rejected:
             quote({**payload, "receiver_timezone": raw})
         assert rejected.value.code == "invalid_receiver_timezone"
+    linked = quote({**payload, "receiver_timezone": "US/Eastern"})
+    assert rail(linked, "ach")["meets_deadline"] == rail(eastern, "ach")["meets_deadline"]
+    assert rail(linked, "ach")["funds_availability_eta"] == rail(eastern, "ach")["funds_availability_eta"]
+
+
+def test_date_outside_holiday_coverage_is_rejected():
+    """The Fed holiday file covers 2026 through 2030. Christmas 2025 is not in it."""
+    with pytest.raises(QuoteError) as before:
+        quote(
+            {
+                "amount_usd": "500.00",
+                "submitted_at": at(2025, 12, 25, 10, 0).isoformat(),
+                "deadline": at(2025, 12, 25, 18, 0).isoformat(),
+                "receiver": "us_bank_account",
+            }
+        )
+    assert before.value.code == "outside_holiday_coverage"
+    with pytest.raises(QuoteError) as after:
+        quote(
+            {
+                "amount_usd": "500.00",
+                "submitted_at": at(2031, 1, 2, 10, 0).isoformat(),
+                "deadline": at(2031, 1, 2, 18, 0).isoformat(),
+                "receiver": "us_bank_account",
+            }
+        )
+    assert after.value.code == "outside_holiday_coverage"

@@ -6,16 +6,18 @@ It is a network-window estimate. It is not a quote from a bank, and it does not 
 
 ## Live service
 
+[https://settlequote.fly.dev](https://settlequote.fly.dev) is a page. It shows a sample request and the decision for that request. The scoreboard is [https://settlequote.fly.dev/dashboard](https://settlequote.fly.dev/dashboard).
+
 | | |
 | --- | --- |
-| API | [https://settlequote.fly.dev](https://settlequote.fly.dev) |
-| Scoreboard | [https://settlequote.fly.dev/dashboard](https://settlequote.fly.dev/dashboard) |
 | Paid route | `POST /v1/quote` |
 | Price | $0.005 USDC |
 | Network | Base Sepolia (`eip155:84532`) |
 | Facilitator | `https://x402.org/facilitator` |
 
-`GET /` returns a sample request and the decision for that request. An unpaid `POST /v1/quote` returns HTTP 402 and a `PAYMENT-REQUIRED` header. The ranking is not in that body. A paid call returns it. `POST /v1/quote/free` allows 10 successful quotes per UTC day and does not use x402. On Fly the caller is `Fly-Client-IP`. `X-Forwarded-For` is ignored. The address is stored as a hash salted with the `IP_HASH_SALT` secret.
+On 2026-10-22 the public scoreboard showed 6 calls, 3 payment challenges, 1 paid settlement, $0.0050 USDC received, and a 0% error rate. Those counts are only calls that hit the public server. The live numbers stay on the scoreboard.
+
+An unpaid `POST /v1/quote` returns HTTP 402 and a `PAYMENT-REQUIRED` header. The ranking is not in that body. A paid call returns it. `POST /v1/quote/free` allows 10 successful quotes per UTC day and does not use x402. On Fly the caller is `Fly-Client-IP`. `X-Forwarded-For` is ignored. The address is stored as a hash salted with the `IP_HASH_SALT` secret.
 
 One paid call to the public API settled on Base Sepolia. That is the call the scoreboard counts:
 
@@ -23,7 +25,9 @@ One paid call to the public API settled on Base Sepolia. That is the call the sc
 
 A quote paid against a local MCP server is a different database and does not show up there.
 
-Base mainnet is not enabled. The public server still uses the testnet facilitator.
+The settlement is a real facilitator payment of testnet USDC. Base mainnet is off. Turning the public server on to mainnet needs a Coinbase CDP API key and real Base USDC in the buyer wallet. Neither is in place, so the live 402 stays on Sepolia.
+
+The commit list is [18 commits on main](https://github.com/alpeshranjan/settlequote/commits/main), all dated 2026-10-22. The first, `f89a51c`, is the engine, the frozen-clock tests, the HTTP API, and x402 in one snapshot. The later commits are the review: timestamp error codes, the Fedwire caveat read from `windows.json`, the page at `/`, the free-tier client IP, the hash salt, rejected `NaN` amounts, the Sunday-night originator open, and the receiver timezone.
 
 How the process is split is in [docs/architecture.md](docs/architecture.md).
 

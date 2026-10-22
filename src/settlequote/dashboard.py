@@ -32,8 +32,9 @@ def render_index() -> str:
   <meta charset="utf-8">
   <title>SettleQuote</title>
   <style>
-    body {{ font: 16px/1.45 system-ui, sans-serif; margin: 2rem auto; max-width: 40rem; }}
-    pre {{ background: #f4f4f4; padding: 0.75rem 1rem; overflow: auto; }}
+    html {{ background: #fff; color-scheme: light; }}
+    body {{ font: 16px/1.45 system-ui, sans-serif; margin: 2rem auto; max-width: 40rem; background: #fff; color: #1a1a1a; }}
+    pre {{ background: #f4f4f4; color: #1a1a1a; padding: 0.75rem 1rem; overflow: auto; }}
     a {{ color: #0b3d91; }}
   </style>
 </head>

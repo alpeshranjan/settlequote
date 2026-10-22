@@ -406,6 +406,7 @@ def test_receiver_timezone_moves_ach_availability_only():
             quote({**payload, "receiver_timezone": raw})
         assert rejected.value.code == "invalid_receiver_timezone"
     linked = quote({**payload, "receiver_timezone": "US/Eastern"})
+    assert linked["receiver_timezone"] == "America/New_York"
     assert rail(linked, "ach")["meets_deadline"] == rail(eastern, "ach")["meets_deadline"]
     assert rail(linked, "ach")["funds_availability_eta"] == rail(eastern, "ach")["funds_availability_eta"]
 

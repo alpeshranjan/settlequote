@@ -70,6 +70,24 @@ _US_ZONES = frozenset(
         "Pacific/Pago_Pago",
     }
 )
+# Legacy names. The container timezone data does not ship these links.
+# EST is omitted: it is a fixed UTC-5 and does not follow daylight time.
+_ZONE_ALIASES = {
+    "US/Eastern": "America/New_York",
+    "US/Central": "America/Chicago",
+    "US/Mountain": "America/Denver",
+    "US/Pacific": "America/Los_Angeles",
+    "US/Alaska": "America/Anchorage",
+    "US/Hawaii": "Pacific/Honolulu",
+    "US/Arizona": "America/Phoenix",
+    "US/East-Indiana": "America/Indiana/Indianapolis",
+    "US/Aleutian": "America/Adak",
+    "US/Samoa": "Pacific/Pago_Pago",
+    "EST5EDT": "America/New_York",
+    "CST6CDT": "America/Chicago",
+    "MST7MDT": "America/Denver",
+    "PST8PDT": "America/Los_Angeles",
+}
 
 RECEIVER_RAILS = {
     "us_bank_account": set(FIAT),
@@ -263,29 +281,13 @@ def _receiver_zone(raw: object) -> ZoneInfo:
         return ET
     if not isinstance(raw, str) or not raw.strip():
         raise QuoteError("invalid_receiver_timezone", message)
+    name = _ZONE_ALIASES.get(raw, raw)
+    if name not in _US_ZONES:
+        raise QuoteError("invalid_receiver_timezone", message)
     try:
-        zone = ZoneInfo(raw)
+        return ZoneInfo(name)
     except (ZoneInfoNotFoundError, ValueError) as exc:
         raise QuoteError("invalid_receiver_timezone", message) from exc
-    if zone.key in _US_ZONES or _matches_us_zone(zone):
-        return zone
-    raise QuoteError("invalid_receiver_timezone", message)
-
-
-def _matches_us_zone(zone: ZoneInfo) -> bool:
-    """True when a legacy name such as US/Eastern keeps the same clock as a listed zone.
-
-    EST is a fixed UTC-5 and does not match America/New_York in July, so it stays rejected.
-    """
-    summer = datetime(2026, 7, 1, 12, tzinfo=zone)
-    winter = datetime(2026, 1, 15, 12, tzinfo=zone)
-    for name in _US_ZONES:
-        candidate = ZoneInfo(name)
-        same_summer = summer.utcoffset() == datetime(2026, 7, 1, 12, tzinfo=candidate).utcoffset()
-        same_winter = winter.utcoffset() == datetime(2026, 1, 15, 12, tzinfo=candidate).utcoffset()
-        if same_summer and same_winter:
-            return True
-    return False
 
 
 def _receiver(raw: object) -> str:

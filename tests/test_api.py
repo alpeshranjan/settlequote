@@ -24,13 +24,13 @@ def test_eleventh_free_call_is_429(tmp_path):
         response = http.post(
             "/v1/quote/free",
             json=payload,
-            headers={"x-forwarded-for": "203.0.113.10"},
+            headers={"fly-client-ip": "203.0.113.10"},
         )
         assert response.status_code == 200, index
     blocked = http.post(
         "/v1/quote/free",
         json=payload,
-        headers={"x-forwarded-for": "203.0.113.10"},
+        headers={"fly-client-ip": "203.0.113.10"},
     )
     assert blocked.status_code == 429
     assert blocked.json()["error"] == "free_tier_exhausted"
@@ -38,9 +38,53 @@ def test_eleventh_free_call_is_429(tmp_path):
     other = http.post(
         "/v1/quote/free",
         json=payload,
-        headers={"x-forwarded-for": "203.0.113.11"},
+        headers={"fly-client-ip": "203.0.113.11"},
     )
     assert other.status_code == 200
+
+
+def test_spoofed_forwarded_for_does_not_reset_the_free_tier(tmp_path):
+    app = create_app(str(tmp_path / "calls.db"), free_limit=2, salt="test")
+    http = TestClient(app)
+    payload = friday_payload()
+    for index in range(2):
+        response = http.post(
+            "/v1/quote/free",
+            json=payload,
+            headers={
+                "fly-client-ip": "203.0.113.10",
+                "x-forwarded-for": f"198.51.100.{index}",
+            },
+        )
+        assert response.status_code == 200, index
+    blocked = http.post(
+        "/v1/quote/free",
+        json=payload,
+        headers={
+            "fly-client-ip": "203.0.113.10",
+            "x-forwarded-for": "198.51.100.99",
+        },
+    )
+    assert blocked.status_code == 429
+
+
+def test_x_forwarded_for_alone_does_not_create_a_new_bucket(tmp_path):
+    app = create_app(str(tmp_path / "calls.db"), free_limit=2, salt="test")
+    http = TestClient(app)
+    payload = friday_payload()
+    for index in range(2):
+        response = http.post(
+            "/v1/quote/free",
+            json=payload,
+            headers={"x-forwarded-for": f"198.51.100.{index}"},
+        )
+        assert response.status_code == 200, index
+    blocked = http.post(
+        "/v1/quote/free",
+        json=payload,
+        headers={"x-forwarded-for": "203.0.113.8"},
+    )
+    assert blocked.status_code == 429
 
 
 def test_bad_amount_is_400(tmp_path):

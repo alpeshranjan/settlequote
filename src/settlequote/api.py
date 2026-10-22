@@ -228,9 +228,14 @@ def _latency(started: float) -> int:
 
 
 def _client_ip(request: Request) -> str:
-    forwarded = request.headers.get("x-forwarded-for")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
+    """Identity for the free tier.
+
+    Fly sets Fly-Client-IP at the proxy and overwrites a client-supplied value.
+    X-Forwarded-For is not read: its first hop is chosen by the caller.
+    """
+    fly_ip = request.headers.get("fly-client-ip")
+    if fly_ip and fly_ip.strip():
+        return fly_ip.strip()
     if request.client is None:
         return "unknown"
     return request.client.host

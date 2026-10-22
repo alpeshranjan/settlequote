@@ -17,9 +17,11 @@ It is a network-window estimate. It is not a quote from a bank, and it does not 
 
 `GET /` returns a sample request and the decision for that request. An unpaid `POST /v1/quote` returns HTTP 402 and a `PAYMENT-REQUIRED` header. The ranking is not in that body. A paid call returns it. `POST /v1/quote/free` allows 10 successful quotes per UTC day and does not use x402. On Fly the caller is `Fly-Client-IP`. `X-Forwarded-For` is ignored. The address is stored as a hash salted with the `IP_HASH_SALT` secret.
 
-One paid call from `settlequote.agent` settled on Base Sepolia:
+One paid call to the public API settled on Base Sepolia. That is the call the scoreboard counts:
 
-[https://sepolia.basescan.org/tx/0x3f94fffd34697d65d951860f34f1d09cda430aed79faf6aa05a8b00e0cd00d35](https://sepolia.basescan.org/tx/0x3f94fffd34697d65d951860f34f1d09cda430aed79faf6aa05a8b00e0cd00d35)
+[https://sepolia.basescan.org/tx/0x565b7450f23a63533894faa317a381418aef7dac8011e1922a1cbbf9c57c4489](https://sepolia.basescan.org/tx/0x565b7450f23a63533894faa317a381418aef7dac8011e1922a1cbbf9c57c4489)
+
+A quote paid against a local MCP server is a different database and does not show up there.
 
 Base mainnet is not enabled. The public server still uses the testnet facilitator.
 

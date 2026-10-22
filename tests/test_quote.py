@@ -433,3 +433,28 @@ def test_date_outside_holiday_coverage_is_rejected():
             }
         )
     assert after.value.code == "outside_holiday_coverage"
+
+
+def test_arrival_past_the_holiday_calendar_has_no_time():
+    """5:30 p.m. on the last covered day. Next ACH day is 2031-01-01, outside the file."""
+    submitted = at(2030, 12, 31, 17, 30)
+    assert submitted.strftime("%A") == "Tuesday"
+    result = quote(
+        {
+            "amount_usd": "500.00",
+            "submitted_at": submitted.isoformat(),
+            "deadline": at(2030, 12, 31, 19, 0).isoformat(),
+            "receiver": "us_bank_account",
+        }
+    )
+    end = load_rules()["holidays"]["coverage_end"]
+    for name in ("ach", "same_day_ach"):
+        item = rail(result, name)
+        assert item["settlement_eta"] is None
+        assert item["funds_availability_eta"] is None
+        assert item["meets_deadline"] is False
+        assert end in " ".join(item["caveats"])
+    wire = rail(result, "fedwire")
+    assert wire["meets_deadline"] is True
+    assert wire["settlement_eta"].startswith("2030-12-31")
+    assert result["recommendation"]["rail"] == "fedwire"

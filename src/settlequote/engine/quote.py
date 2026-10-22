@@ -362,19 +362,35 @@ def _finish(
     data_status: str = "ok",
     conditional: bool = False,
 ) -> RailResult:
+    reported_caveats = list(caveats)
+    meets = availability <= deadline
+    if _past_holiday_coverage(settlement, rules) or _past_holiday_coverage(availability, rules):
+        settlement = None
+        availability = None
+        meets = False
+        reported_caveats.append(
+            "The estimated arrival is after "
+            f"{rules['holidays']['coverage_end']}, the last day in the transcribed "
+            "holiday calendar, so no arrival time is returned."
+        )
     return RailResult(
         rail=rail,
         eligible=True,
         conditional=conditional,
-        meets_deadline=availability <= deadline,
+        meets_deadline=meets,
         settlement_eta=settlement,
         funds_availability_eta=availability,
         operator_fee_usd=operator,
         customer_fee_band_usd=_band(rules, rail),
         window=window,
         data_status=data_status,
-        caveats=caveats,
+        caveats=reported_caveats,
     )
+
+
+def _past_holiday_coverage(moment: datetime, rules: dict) -> bool:
+    end = date.fromisoformat(rules["holidays"]["coverage_end"])
+    return as_et(moment).date() > end
 
 
 def _availability(day, hhmm: str, zone: ZoneInfo, settlement: datetime) -> datetime:

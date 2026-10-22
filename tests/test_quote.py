@@ -274,6 +274,24 @@ def test_missing_and_malformed_timestamps_have_their_own_codes():
             }
         )
     assert bad_submitted.value.code == "invalid_submitted_at"
+
+
+def test_fedwire_caveat_uses_the_json_cutoff():
+    from settlequote.engine.quote import _clock_phrase
+
+    submitted = at(2026, 10, 23, 16, 50)
+    result = quote(
+        {
+            "amount_usd": "12000.00",
+            "submitted_at": submitted.isoformat(),
+            "deadline": at(2026, 10, 23, 19, 0).isoformat(),
+            "receiver": "us_bank_account",
+        }
+    )
+    cutoff = load_rules()["windows"]["fedwire"]["customer_cutoff_local"]
+    expected = f"A sending bank's own cutoff is earlier than {_clock_phrase(cutoff)}."
+    assert expected in rail(result, "fedwire")["caveats"]
+    assert _clock_phrase("18:45") == "6:45 p.m. ET"
     with pytest.raises(QuoteError) as unknown:
         quote(
             {

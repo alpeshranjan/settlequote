@@ -169,6 +169,14 @@ def _parse_time(raw: object, field_name: str) -> datetime:
     return moment
 
 
+def _clock_phrase(hhmm: str) -> str:
+    """Format a 24-hour HH:MM from windows.json as a Fed-style clock time."""
+    hour, minute = (int(part) for part in hhmm.split(":"))
+    suffix = "a.m." if hour < 12 else "p.m."
+    hour12 = hour % 12 or 12
+    return f"{hour12}:{minute:02d} {suffix} ET"
+
+
 def _receiver(raw: object) -> str:
     if raw not in RECEIVER_RAILS:
         raise QuoteError(
@@ -375,7 +383,10 @@ def _fedwire(submitted: datetime, deadline: datetime, rules: dict) -> RailResult
         window={"status": status, "cutoff": iso(cutoff_shown), "next_open": iso(next_open)},
         caveats=[
             spec["models"],
-            "A sending bank's own cutoff is earlier than 6:45 p.m. ET.",
+            (
+                "A sending bank's own cutoff is earlier than "
+                f"{_clock_phrase(spec['customer_cutoff_local'])}."
+            ),
             spec["source_sentence"],
             rules["fees"]["fedwire"]["operator_fee_sentence"],
         ],

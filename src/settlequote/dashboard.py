@@ -80,10 +80,11 @@ def render(stats: dict, rules_version: str) -> str:
   <meta charset="utf-8">
   <title>SettleQuote</title>
   <style>
-    body {{ font: 16px/1.4 system-ui, sans-serif; margin: 2rem auto; max-width: 40rem; }}
+    html {{ background: #fff; color-scheme: light; }}
+    body {{ font: 16px/1.4 system-ui, sans-serif; margin: 2rem auto; max-width: 40rem; background: #fff; color: #1a1a1a; }}
     dl {{ display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem 1rem; }}
     dt {{ color: #444; }}
-    dd {{ margin: 0; font-variant-numeric: tabular-nums; }}
+    dd {{ margin: 0; font-variant-numeric: tabular-nums; color: #1a1a1a; }}
   </style>
 </head>
 <body>

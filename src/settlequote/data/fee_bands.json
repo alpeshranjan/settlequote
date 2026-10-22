@@ -1,0 +1,64 @@
+{
+  "reviewed_on": "2026-10-21",
+  "rank_basis": "operator_fee",
+  "rank_note": "Customer bands are estimates. They are never used to rank.",
+  "ach": {
+    "operator_fee_usd": "0.0035",
+    "operator_fee_url": "https://www.frbservices.org/resources/service-fees/ach-2026/",
+    "operator_fee_sentence": "FedACH 2026 origination item fee, forward or return, billing codes 57201, 57202, 57205, 57211, 57212, 57215: $0.0035. Effective January 1, 2026. Volume discounts and the monthly minimum are not allocated to one payment.",
+    "customer_fee_band_usd": {
+      "low": "0.20",
+      "high": "1.50",
+      "label": "estimate",
+      "reviewed_on": "2026-10-21",
+      "note": "Not a tariff and not used to rank."
+    }
+  },
+  "same_day_ach": {
+    "operator_fee_usd": "0.0045",
+    "operator_fee_url": "https://www.frbservices.org/resources/service-fees/ach-2026/",
+    "operator_fee_sentence": "FedACH 2026 forward item fee $0.0035 plus SameDay Service forward-item surcharge billing code 57620 $0.0010. Effective January 1, 2026.",
+    "customer_fee_band_usd": {
+      "low": "0.50",
+      "high": "5.00",
+      "label": "estimate",
+      "reviewed_on": "2026-10-21",
+      "note": "Not a tariff and not used to rank."
+    }
+  },
+  "fedwire": {
+    "operator_fee_usd": "0.97",
+    "operator_fee_url": "https://www.frbservices.org/resources/service-fees/wires-2026/",
+    "operator_fee_sentence": "Fedwire Funds Service 2026 tier-1 pre-incentive per-transfer price $0.97 for monthly volume up to 14,000. Effective January 1, 2026. Volume incentive prices and any surcharge on transfers processed after 5:00 p.m. ET are not included.",
+    "customer_fee_band_usd": {
+      "low": "15.00",
+      "high": "35.00",
+      "label": "estimate",
+      "reviewed_on": "2026-10-21",
+      "note": "Not a tariff and not used to rank. Bank retail wire prices are far above the Fed's per-transfer fee."
+    }
+  },
+  "rtp": {
+    "operator_fee_usd": null,
+    "operator_fee_sentence": "The Clearing House does not publish one public per-payment operator price. RTP is shown for speed and is excluded from the cost rank.",
+    "customer_fee_band_usd": {
+      "low": "0.00",
+      "high": "1.00",
+      "label": "estimate",
+      "reviewed_on": "2026-10-21",
+      "note": "Not a tariff and not used to rank."
+    }
+  },
+  "fednow": {
+    "operator_fee_usd": "0.045",
+    "operator_fee_url": "https://www.frbservices.org/resources/service-fees/fednow-2026/",
+    "operator_fee_sentence": "FedNow 2026 customer credit transfer pacs.008 origination, billing code 81100: $0.045 per item. Effective January 1, 2026. A 2026 discount zeros that fee for up to 2,500 originations a month. The rank uses the list price, not the discount.",
+    "customer_fee_band_usd": {
+      "low": "0.00",
+      "high": "1.00",
+      "label": "estimate",
+      "reviewed_on": "2026-10-21",
+      "note": "Not a tariff and not used to rank."
+    }
+  }
+}

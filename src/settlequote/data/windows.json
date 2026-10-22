@@ -1,0 +1,70 @@
+{
+  "rules_version": "2026-10-21",
+  "reviewed_on": "2026-10-21",
+  "timezone": "America/New_York",
+  "disclaimer": "Network-window estimate, not a quote from a bank, and not financial, legal, or payments advice. Originating-bank cutoffs are earlier than Fed deadlines. Receiver availability is not checked.",
+  "ach": {
+    "source_url": "https://www.frbservices.org/resources/resource-centers/same-day-ach/fedach-processing-schedule.html",
+    "source_sentence": "Future Dated Forward Items: transmission deadline 2:15 a.m. ET (0215 ET), settlement 8:30 a.m. ET (0830 ET) on the future business day. Schedule effective September 12, 2022, transcribed 2026-10-21.",
+    "file_deadline_local": "02:15",
+    "settlement_local": "08:30",
+    "funds_availability_local": "09:00",
+    "funds_availability_sentence": "Next-day credits must be available by 9:00 a.m. RDFI local time on the settlement date. This quote uses 9:00 a.m. Eastern as a proxy."
+  },
+  "same_day_ach": {
+    "source_url": "https://www.frbservices.org/resources/resource-centers/same-day-ach/fedach-processing-schedule.html",
+    "source_sentence": "Same Day Eligible Forward Items: 10:30 a.m. ET settles 1:00 p.m. ET; 2:45 p.m. ET settles 5:00 p.m. ET; 4:45 p.m. ET settles 6:00 p.m. ET, all current day.",
+    "amount_cap_usd": "1000000",
+    "amount_cap_url": "https://www.frbservices.org/financial-services/fedach-services/same-day-service/",
+    "amount_cap_sentence": "The ACH Rules exclude from eligibility international transactions (IAT), automated enrollment entries (ENR) and transactions above $1,000,000.",
+    "windows": [
+      {
+        "transmission_deadline_local": "10:30",
+        "settlement_local": "13:00",
+        "funds_availability_local": "13:30",
+        "funds_availability_sentence": "First same-day window: funds must be available by 1:30 p.m. RDFI local time. This quote uses 1:30 p.m. Eastern as a proxy."
+      },
+      {
+        "transmission_deadline_local": "14:45",
+        "settlement_local": "17:00",
+        "funds_availability_local": "17:00",
+        "funds_availability_sentence": "Second same-day window: funds must be available by 5:00 p.m. RDFI local time. This quote uses 5:00 p.m. Eastern as a proxy."
+      },
+      {
+        "transmission_deadline_local": "16:45",
+        "settlement_local": "18:00",
+        "funds_availability_local": "23:59",
+        "funds_availability_sentence": "Third same-day window: NACHA requires availability by the end of the RDFI processing day, which can be the next morning. This quote uses 11:59 p.m. Eastern on the settlement date as a stand-in, not a promise."
+      }
+    ]
+  },
+  "fedwire": {
+    "source_url": "https://www.frbservices.org/resources/financial-services/wires/fedwire-funds-service-national-settlement-service-operating-hours/",
+    "source_sentence": "6:45 p.m. ET Customer Transfers. Core customer transfer. pacs.008. CTRC. The cutoff times and closing time of the Fedwire Funds Service for online messages are inclusive of the minute listed.",
+    "open_sentence": "The funds-transfer business day begins at 9:00 p.m. ET on the preceding calendar day and ends at 7:00 p.m. ET. On a Sunday preceding a Monday funds-transfer business day, the Fedwire Funds Service will open at 9:00 p.m. ET on Sunday.",
+    "customer_cutoff_local": "18:45",
+    "cutoff_inclusive_minute": true,
+    "opens_prior_calendar_day_local": "21:00",
+    "models": "core customer transfer only (pacs.008 CTRC). Bank-to-bank pacs.009 BTRC, whose cutoff is 7:00 p.m. ET, is not modeled."
+  },
+  "rtp": {
+    "source_url": "https://www.theclearinghouse.org/payment-systems/rtp",
+    "source_sentence": "The RTP network operates 24 hours a day, 7 days a week, 365 days a year. This quote does not check whether either institution participates. The Clearing House routing file is not redistributed.",
+    "settlement_seconds": 20
+  },
+  "fednow": {
+    "source_url": "https://www.frbservices.org/financial-services/fednow",
+    "source_sentence": "The FedNow Service operates 24 hours a day, 7 days a week, every day of the year. This quote does not check whether either institution participates. The FedNow routing-number list prohibits commercial reuse and is not in this repo.",
+    "settlement_seconds": 20
+  },
+  "usdc_base": {
+    "source_sentence": "Static inclusion and confirmation assumptions until a live Base fee read is wired. Chain confirmation is not a bank credit.",
+    "inclusion_seconds": 2,
+    "confirmation_seconds": 20
+  },
+  "usdc_solana": {
+    "source_sentence": "Static inclusion and confirmation assumptions until a live Solana fee read is wired. Chain confirmation is not a bank credit.",
+    "inclusion_seconds": 2,
+    "confirmation_seconds": 5
+  }
+}

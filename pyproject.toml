@@ -1,0 +1,22 @@
+[project]
+name = "settlequote"
+version = "0.1.0"
+description = "Deadline and operator-cost quote for US payment rails."
+requires-python = ">=3.11"
+readme = "README.md"
+dependencies = ["fastapi", "uvicorn", "httpx"]
+
+[project.optional-dependencies]
+dev = ["pytest", "mcp>=1.12,<2"]
+payments = ["x402[fastapi,evm,extensions,mcp]", "mcp>=1.12,<2"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+markers = ["network: calls the public Base Sepolia x402 facilitator"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+settlequote = ["data/*.json"]

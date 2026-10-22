@@ -357,3 +357,30 @@ def test_disclaimer_is_on_every_quote():
     )
     assert "not financial, legal, or payments advice" in result["disclaimer"]
     assert result["rules_version"] == "2026-10-21"
+
+
+def test_receiver_timezone_moves_ach_availability_only():
+    """Next-day credits are due by 9:00 a.m. RDFI local time.
+    9:00 a.m. Pacific is later than 10:00 a.m. Eastern, so the same deadline misses.
+    """
+    from zoneinfo import ZoneInfo
+
+    submitted = at(2026, 10, 25, 15, 0)
+    payload = {
+        "amount_usd": "500.00",
+        "submitted_at": submitted.isoformat(),
+        "deadline": at(2026, 10, 26, 10, 0).isoformat(),
+        "receiver": "us_bank_account",
+    }
+    eastern = quote(payload)
+    western = quote({**payload, "receiver_timezone": "America/Los_Angeles"})
+    assert rail(eastern, "ach")["meets_deadline"] is True
+    assert rail(western, "ach")["meets_deadline"] is False
+    assert rail(western, "ach")["settlement_eta"] == at(2026, 10, 26, 8, 30).isoformat()
+    ready = datetime(2026, 10, 26, 9, 0, tzinfo=ZoneInfo("America/Los_Angeles"))
+    assert rail(western, "ach")["funds_availability_eta"] == ready.isoformat()
+    assert eastern["receiver_timezone"] == "America/New_York"
+    assert western["receiver_timezone"] == "America/Los_Angeles"
+    with pytest.raises(QuoteError) as bad_zone:
+        quote({**payload, "receiver_timezone": "Not/AZone"})
+    assert bad_zone.value.code == "invalid_receiver_timezone"

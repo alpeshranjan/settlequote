@@ -11,7 +11,9 @@ from datetime import datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from uuid import uuid4
 
-from settlequote.engine.calendar import ET, as_et, at_local, exclusive_end_of_minute
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+from settlequote.engine.calendar import ET, as_et, at_in_zone, at_local, exclusive_end_of_minute
 from settlequote.engine.gas import StaticGas
 from settlequote.engine.rules import iso, is_stale, load_rules, money
 
@@ -91,6 +93,7 @@ def quote(
     submitted = _submitted(payload, now)
     deadline = _deadline(payload.get("deadline"), submitted)
     receiver = _receiver(payload.get("receiver"))
+    zone = _receiver_zone(payload.get("receiver_timezone"))
     requested = _requested(payload.get("rails"))
     allowed = RECEIVER_RAILS[receiver]
 
@@ -101,6 +104,7 @@ def quote(
             submitted=submitted,
             deadline=deadline,
             allowed=allowed,
+            zone=zone,
             receiver=receiver,
             rules=rules,
             gas=gas,
@@ -118,6 +122,7 @@ def quote(
         "rules_version": rules["rules_version"],
         "cost_rank_basis": "operator_fee",
         "deadline_basis": "funds_availability",
+        "receiver_timezone": zone.key,
         "disclaimer": DISCLAIMER,
         "caveats": caveats,
         "recommendation": recommendation,
@@ -191,6 +196,17 @@ def _clock_phrase(hhmm: str) -> str:
     return f"{hour12}:{minute:02d} {suffix} ET"
 
 
+def _receiver_zone(raw: object) -> ZoneInfo:
+    if raw is None:
+        return ET
+    if not isinstance(raw, str) or not raw.strip():
+        raise QuoteError("invalid_receiver_timezone", "receiver_timezone must be an IANA name.")
+    try:
+        return ZoneInfo(raw)
+    except ZoneInfoNotFoundError as exc:
+        raise QuoteError("invalid_receiver_timezone", "receiver_timezone must be an IANA name.") from exc
+
+
 def _receiver(raw: object) -> str:
     if raw not in RECEIVER_RAILS:
         raise QuoteError(
@@ -219,6 +235,7 @@ def _one(
     deadline: datetime,
     allowed: set[str],
     receiver: str,
+    zone: ZoneInfo,
     rules: dict,
     gas: StaticGas,
 ) -> RailResult:
@@ -229,9 +246,9 @@ def _one(
         return RailResult(rail=rail, eligible=False, ineligible_reason=reason, conditional=rail in CONDITIONAL)
 
     if rail == "ach":
-        return _ach(submitted, deadline, rules)
+        return _ach(submitted, deadline, rules, zone)
     if rail == "same_day_ach":
-        return _same_day(submitted, deadline, amount, rules)
+        return _same_day(submitted, deadline, amount, rules, zone)
     if rail == "fedwire":
         return _fedwire(submitted, deadline, rules)
     if rail in CONDITIONAL:
@@ -277,7 +294,22 @@ def _finish(
     )
 
 
-def _ach(submitted: datetime, deadline: datetime, rules: dict) -> RailResult:
+def _availability(day, hhmm: str, zone: ZoneInfo, settlement: datetime) -> datetime:
+    """RDFI local clock, but never earlier than Fed settlement."""
+    local_ready = at_in_zone(day, hhmm, zone)
+    return local_ready if local_ready >= settlement else settlement
+
+
+def _zone_caveat(zone: ZoneInfo) -> str | None:
+    if zone.key == ET.key:
+        return None
+    return (
+        f"Funds availability uses {zone.key} for the receiving bank. "
+        "Fed deadlines stay on Eastern time."
+    )
+
+
+def _ach(submitted: datetime, deadline: datetime, rules: dict, zone: ZoneInfo) -> RailResult:
     spec = rules["windows"]["ach"]
     calendar = rules["calendar"]
     start = as_et(submitted).date()
@@ -290,7 +322,7 @@ def _ach(submitted: datetime, deadline: datetime, rules: dict) -> RailResult:
         candidate = at_local(day, spec["settlement_local"])
         if submitted < file_deadline and candidate > submitted:
             settlement = candidate
-            availability = at_local(day, spec["funds_availability_local"])
+            availability = _availability(day, spec["funds_availability_local"], zone, settlement)
             break
     if settlement is None:
         raise QuoteError("internal", "No ACH settlement day inside the search window.")
@@ -304,15 +336,20 @@ def _ach(submitted: datetime, deadline: datetime, rules: dict) -> RailResult:
         rules=rules,
         window={"status": "next_banking_day", "cutoff": iso(file_deadline - timedelta(minutes=1))},
         caveats=[
-            "Originating-bank file cutoff is earlier than this FedACH deadline.",
-            spec["funds_availability_sentence"],
-            rules["fees"]["ach"]["operator_fee_sentence"],
+            item
+            for item in (
+                "Originating-bank file cutoff is earlier than this FedACH deadline.",
+                spec["funds_availability_sentence"],
+                _zone_caveat(zone),
+                rules["fees"]["ach"]["operator_fee_sentence"],
+            )
+            if item
         ],
     )
 
 
 def _same_day(
-    submitted: datetime, deadline: datetime, amount: Decimal, rules: dict
+    submitted: datetime, deadline: datetime, amount: Decimal, rules: dict, zone: ZoneInfo
 ) -> RailResult:
     spec = rules["windows"]["same_day_ach"]
     cap = Decimal(spec["amount_cap_usd"])
@@ -338,7 +375,7 @@ def _same_day(
     if chosen is None:
         raise QuoteError("internal", "No same-day window inside the search window.")
     settlement = at_local(day, chosen["settlement_local"])
-    availability = at_local(day, chosen["funds_availability_local"])
+    availability = _availability(day, chosen["funds_availability_local"], zone, settlement)
     return _finish(
         "same_day_ach",
         submitted=submitted,
@@ -349,11 +386,16 @@ def _same_day(
         rules=rules,
         window={"status": "next_window", "cutoff": iso(at_local(day, chosen["transmission_deadline_local"]))},
         caveats=[
-            "Originating-bank file cutoff is earlier than this FedACH deadline.",
-            spec["amount_cap_sentence"],
-            "IAT and ENR entries are also ineligible. V1 checks the amount cap only.",
-            chosen["funds_availability_sentence"],
-            rules["fees"]["same_day_ach"]["operator_fee_sentence"],
+            item
+            for item in (
+                "Originating-bank file cutoff is earlier than this FedACH deadline.",
+                spec["amount_cap_sentence"],
+                "IAT and ENR entries are also ineligible. V1 checks the amount cap only.",
+                chosen["funds_availability_sentence"],
+                _zone_caveat(zone),
+                rules["fees"]["same_day_ach"]["operator_fee_sentence"],
+            )
+            if item
         ],
     )
 

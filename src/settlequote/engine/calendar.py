@@ -13,8 +13,12 @@ def as_et(moment: datetime) -> datetime:
 
 
 def at_local(day: date, hhmm: str) -> datetime:
+    return at_in_zone(day, hhmm, ET)
+
+
+def at_in_zone(day: date, hhmm: str, zone: ZoneInfo) -> datetime:
     hour, minute = (int(part) for part in hhmm.split(":"))
-    return datetime(day.year, day.month, day.day, hour, minute, tzinfo=ET)
+    return datetime(day.year, day.month, day.day, hour, minute, tzinfo=zone)
 
 
 def exclusive_end_of_minute(moment: datetime) -> datetime:

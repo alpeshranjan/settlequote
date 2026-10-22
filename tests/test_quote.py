@@ -246,6 +246,34 @@ def test_deadline_before_submission_and_bad_amount_are_errors():
             }
         )
     assert amount.value.code == "invalid_amount"
+
+
+def test_missing_and_malformed_timestamps_have_their_own_codes():
+    submitted = at(2026, 10, 23, 16, 50)
+    deadline = at(2026, 10, 23, 19, 0).isoformat()
+    with pytest.raises(QuoteError) as missing:
+        quote({"amount_usd": "10.00", "deadline": deadline, "receiver": "us_bank_account"})
+    assert missing.value.code == "missing_submitted_at"
+    with pytest.raises(QuoteError) as bad_deadline:
+        quote(
+            {
+                "amount_usd": "10.00",
+                "submitted_at": submitted.isoformat(),
+                "deadline": "Friday",
+                "receiver": "us_bank_account",
+            }
+        )
+    assert bad_deadline.value.code == "invalid_deadline"
+    with pytest.raises(QuoteError) as bad_submitted:
+        quote(
+            {
+                "amount_usd": "10.00",
+                "submitted_at": "noon",
+                "deadline": deadline,
+                "receiver": "us_bank_account",
+            }
+        )
+    assert bad_submitted.value.code == "invalid_submitted_at"
     with pytest.raises(QuoteError) as unknown:
         quote(
             {

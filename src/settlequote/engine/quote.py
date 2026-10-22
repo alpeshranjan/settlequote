@@ -138,7 +138,7 @@ def _submitted(payload: dict, now: datetime | None) -> datetime:
     raw = payload.get("submitted_at")
     if raw is None:
         if now is None:
-            raise QuoteError("invalid_amount", "submitted_at or now is required.")
+            raise QuoteError("missing_submitted_at", "submitted_at or now is required.")
         moment = now
     else:
         moment = _parse_time(raw, "submitted_at")
@@ -157,14 +157,15 @@ def _deadline(raw: object, submitted: datetime) -> datetime:
 
 
 def _parse_time(raw: object, field_name: str) -> datetime:
+    code = f"invalid_{field_name}"
     if not isinstance(raw, str):
-        raise QuoteError(field_name, f"{field_name} must be an ISO-8601 timestamp.")
+        raise QuoteError(code, f"{field_name} must be an ISO-8601 timestamp.")
     try:
         moment = datetime.fromisoformat(raw)
     except ValueError as exc:
-        raise QuoteError(field_name, f"{field_name} must be an ISO-8601 timestamp.") from exc
+        raise QuoteError(code, f"{field_name} must be an ISO-8601 timestamp.") from exc
     if moment.tzinfo is None:
-        raise QuoteError(field_name, f"{field_name} must include a timezone offset.")
+        raise QuoteError(code, f"{field_name} must include a timezone offset.")
     return moment
 
 

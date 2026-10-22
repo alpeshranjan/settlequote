@@ -3,6 +3,11 @@
 import asyncio
 import json
 
+import pytest
+
+pytest.importorskip("mcp")
+pytest.importorskip("x402")
+
 from settlequote.mcp_server import FREE_TOOL, create_mcp, describe
 
 

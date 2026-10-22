@@ -8,6 +8,10 @@ Run with network access:
 import os
 
 import pytest
+
+pytest.importorskip("x402")
+pytest.importorskip("eth_utils")
+
 from eth_utils import to_checksum_address
 from fastapi.testclient import TestClient
 from x402.http.utils import decode_payment_required_header

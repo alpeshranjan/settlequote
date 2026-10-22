@@ -1,6 +1,55 @@
-"""Server-rendered totals. Aggregates only, no caller identities."""
+"""Server-rendered pages. Aggregates only, no caller identities."""
 
+import json
 from html import escape
+
+from settlequote.engine.quote import quote
+
+REPO_URL = "https://github.com/alpeshranjan/settlequote"
+SAMPLE_REQUEST = {
+    "amount_usd": "12000.00",
+    "deadline": "2026-10-23T19:00:00-04:00",
+    "submitted_at": "2026-10-23T16:50:00-04:00",
+    "receiver": "us_bank_account",
+}
+
+
+def render_index() -> str:
+    """One page a reviewer can read without calling the API."""
+    full = quote(SAMPLE_REQUEST)
+    sample = {
+        "recommendation": full["recommendation"],
+        "cost_rank_basis": full["cost_rank_basis"],
+        "deadline_basis": full["deadline_basis"],
+        "rules_version": full["rules_version"],
+        "disclaimer": full["disclaimer"],
+    }
+    request_json = escape(json.dumps(SAMPLE_REQUEST, indent=2))
+    response_json = escape(json.dumps(sample, indent=2))
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>SettleQuote</title>
+  <style>
+    body {{ font: 16px/1.45 system-ui, sans-serif; margin: 2rem auto; max-width: 40rem; }}
+    pre {{ background: #f4f4f4; padding: 0.75rem 1rem; overflow: auto; }}
+    a {{ color: #0b3d91; }}
+  </style>
+</head>
+<body>
+  <h1>SettleQuote</h1>
+  <p>Which US payment rail can meet a deadline, ranked by the Fed's published operator fee. Not a bank quote. A paid call costs $0.005 USDC.</p>
+  <p><a href="/dashboard">Call scoreboard</a> · <a href="{REPO_URL}">Source</a></p>
+  <h2>Sample request</h2>
+  <p><code>POST /v1/quote</code></p>
+  <pre>{request_json}</pre>
+  <h2>Sample response</h2>
+  <p>The live body also includes a <code>rails</code> array. This is the decision.</p>
+  <pre>{response_json}</pre>
+</body>
+</html>
+"""
 
 
 def render(stats: dict, rules_version: str) -> str:

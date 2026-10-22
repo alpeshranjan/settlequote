@@ -68,6 +68,15 @@ def test_dashboard_shows_the_free_call(tmp_path):
     assert 'id="error-rate">0%<' in page.text
 
 
+def test_index_shows_a_sample_and_the_repo(tmp_path):
+    page = client(tmp_path).get("/")
+    assert page.status_code == 200
+    assert "12000.00" in page.text
+    assert "fedwire" in page.text
+    assert 'href="/dashboard"' in page.text
+    assert "https://github.com/alpeshranjan/settlequote" in page.text
+
+
 def test_health_and_methodology(tmp_path):
     http = client(tmp_path)
     health = http.get("/health")

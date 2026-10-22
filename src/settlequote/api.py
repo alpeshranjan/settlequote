@@ -8,7 +8,7 @@ from json import JSONDecodeError
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 
-from settlequote.dashboard import render
+from settlequote.dashboard import render, render_index
 from settlequote.engine.quote import DISCLAIMER, QuoteError, quote
 from settlequote.engine.rules import load_rules
 from settlequote.metrics import (
@@ -39,6 +39,10 @@ def create_app(
     app.state.salt = salt
     app.state.pay_to = pay_to
     app.state.network = network if pay_to else "unconfigured"
+
+    @app.get("/", response_class=HTMLResponse)
+    def index() -> str:
+        return render_index()
 
     @app.get("/health")
     def health() -> dict:

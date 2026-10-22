@@ -45,6 +45,8 @@
     "customer_cutoff_local": "18:45",
     "cutoff_inclusive_minute": true,
     "opens_prior_calendar_day_local": "21:00",
+    "originator_open_local": "09:00",
+    "originator_open_note": "Assumption, not a Fed cutoff and not a specific bank's posted hours. The network open on the preceding calendar day is earlier than a sending bank's desk.",
     "models": "core customer transfer only (pacs.008 CTRC). Bank-to-bank pacs.009 BTRC, whose cutoff is 7:00 p.m. ET, is not modeled."
   },
   "rtp": {

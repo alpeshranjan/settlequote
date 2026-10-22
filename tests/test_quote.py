@@ -106,6 +106,31 @@ def test_customer_wire_cutoff_is_inclusive_of_645_and_closed_at_646():
     assert missed["recommendation"]["conditional"] is True
 
 
+def test_sunday_network_open_is_not_treated_as_a_sending_bank_open():
+    """The network opens Sunday at 9:00 p.m. ET. No sending bank is modeled as originating then.
+    A Monday 8:00 a.m. deadline is before the assumed desk open, so Fedwire does not meet it.
+    """
+    submitted = at(2026, 10, 24, 12, 0)
+    result = quote(
+        {
+            "amount_usd": "500.00",
+            "submitted_at": submitted.isoformat(),
+            "deadline": at(2026, 10, 26, 8, 0).isoformat(),
+            "receiver": "us_bank_account",
+        }
+    )
+    wire = rail(result, "fedwire")
+    assert wire["settlement_eta"] == at(2026, 10, 25, 21, 0).isoformat()
+    assert wire["funds_availability_eta"] == at(2026, 10, 26, 9, 0).isoformat()
+    assert wire["meets_deadline"] is False
+    assert rail(result, "ach")["meets_deadline"] is False
+    open_local = load_rules()["windows"]["fedwire"]["originator_open_local"]
+    from settlequote.engine.quote import _clock_phrase
+
+    assert _clock_phrase(open_local) in " ".join(wire["caveats"])
+    assert result["recommendation"]["conditional"] is True
+
+
 def test_saturday_rolls_to_the_next_banking_day():
     """Fedwire and FedACH do not run a funds-transfer business day on Saturday.
     Monday's Fedwire cycle opens Sunday at 9:00 p.m. ET. Next-day ACH settles at 8:30 a.m. ET.

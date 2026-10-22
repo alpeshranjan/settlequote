@@ -386,20 +386,32 @@ def _fedwire(submitted: datetime, deadline: datetime, rules: dict) -> RailResult
             break
     if settlement is None:
         raise QuoteError("internal", "No Fedwire customer window inside the search window.")
+    originator_open = at_local(day, spec["originator_open_local"])
+    availability = originator_open if settlement < originator_open else settlement
+    window = {"status": status, "cutoff": iso(cutoff_shown), "next_open": iso(next_open)}
+    if availability != settlement:
+        window["originator_open"] = iso(originator_open)
     return _finish(
         "fedwire",
         submitted=submitted,
         deadline=deadline,
         settlement=settlement,
-        availability=settlement,
+        availability=availability,
         operator=_operator(rules, "fedwire"),
         rules=rules,
-        window={"status": status, "cutoff": iso(cutoff_shown), "next_open": iso(next_open)},
+        window=window,
         caveats=[
             spec["models"],
             (
                 "A sending bank's own cutoff is earlier than "
                 f"{_clock_phrase(spec['customer_cutoff_local'])}."
+            ),
+            (
+                "A sending bank is not modeled as originating at the network open. "
+                "The earliest customer origination in this quote is "
+                f"{_clock_phrase(spec['originator_open_local'])} "
+                "on the funds-transfer business day. "
+                f"{spec['originator_open_note']}"
             ),
             spec["source_sentence"],
             rules["fees"]["fedwire"]["operator_fee_sentence"],

@@ -51,6 +51,16 @@ def test_bad_amount_is_400(tmp_path):
     assert response.json()["error"] == "invalid_amount"
 
 
+def test_nan_amount_is_400_not_500(tmp_path):
+    http = client(tmp_path)
+    for raw in ("NaN", "sNaN", "1e-30"):
+        payload = friday_payload()
+        payload["amount_usd"] = raw
+        response = http.post("/v1/quote/free", json=payload)
+        assert response.status_code == 400, raw
+        assert response.json()["error"] == "invalid_amount"
+
+
 def test_paid_route_does_not_return_a_quote(tmp_path):
     response = client(tmp_path).post("/v1/quote", json=friday_payload())
     assert response.status_code == 402

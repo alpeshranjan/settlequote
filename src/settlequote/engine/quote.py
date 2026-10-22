@@ -5,6 +5,7 @@ Those rails are 24/7 only if both institutions participate, and this tool
 does not check that. They stay in the response, marked conditional.
 """
 
+import re
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from decimal import Decimal, InvalidOperation
@@ -25,6 +26,8 @@ USDC = ("usdc_base", "usdc_solana")
 ALL_RAILS = FIAT + USDC
 CONDITIONAL = {"rtp", "fednow"}
 MAX_AMOUNT = Decimal("100000000")
+MIN_AMOUNT = Decimal("0.01")
+_AMOUNT_TEXT = re.compile(r"^(?:0|[1-9]\d*)(?:\.\d{1,2})?$")
 
 RECEIVER_RAILS = {
     "us_bank_account": set(FIAT),
@@ -123,12 +126,23 @@ def quote(
 
 
 def _amount(raw: object) -> Decimal:
+    if not isinstance(raw, str) or _AMOUNT_TEXT.fullmatch(raw) is None:
+        raise QuoteError(
+            "invalid_amount",
+            "amount_usd must be a decimal string with at most 2 places, minimum 0.01.",
+        )
     try:
-        amount = Decimal(str(raw))
-    except (InvalidOperation, ValueError) as exc:
-        raise QuoteError("invalid_amount", "amount_usd must be a decimal string.") from exc
-    if amount <= 0:
-        raise QuoteError("invalid_amount", "amount_usd must be greater than 0.")
+        amount = Decimal(raw)
+    except InvalidOperation as exc:
+        raise QuoteError(
+            "invalid_amount",
+            "amount_usd must be a decimal string with at most 2 places, minimum 0.01.",
+        ) from exc
+    if not amount.is_finite() or amount < MIN_AMOUNT:
+        raise QuoteError(
+            "invalid_amount",
+            "amount_usd must be a decimal string with at most 2 places, minimum 0.01.",
+        )
     if amount > MAX_AMOUNT:
         raise QuoteError("amount_too_large", "amount_usd exceeds 100000000.")
     return amount

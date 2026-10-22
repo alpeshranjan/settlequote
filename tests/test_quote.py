@@ -248,6 +248,20 @@ def test_deadline_before_submission_and_bad_amount_are_errors():
     assert amount.value.code == "invalid_amount"
 
 
+@pytest.mark.parametrize("raw", ["NaN", "sNaN", "Infinity", "1e-30", "0.001", "0.00", "1.001"])
+def test_non_cent_amounts_are_rejected(raw):
+    with pytest.raises(QuoteError) as exc:
+        quote(
+            {
+                "amount_usd": raw,
+                "submitted_at": at(2026, 10, 23, 16, 50).isoformat(),
+                "deadline": at(2026, 10, 23, 19, 0).isoformat(),
+                "receiver": "us_bank_account",
+            }
+        )
+    assert exc.value.code == "invalid_amount"
+
+
 def test_missing_and_malformed_timestamps_have_their_own_codes():
     submitted = at(2026, 10, 23, 16, 50)
     deadline = at(2026, 10, 23, 19, 0).isoformat()

@@ -1,3 +1,4 @@
+import pytest
 from fastapi.testclient import TestClient
 
 from settlequote.api import create_app
@@ -129,6 +130,12 @@ def test_index_shows_a_sample_and_the_repo(tmp_path):
     assert "fedwire" in page.text
     assert 'href="/dashboard"' in page.text
     assert "https://github.com/alpeshranjan/settlequote" in page.text
+
+
+def test_a_missing_salt_refuses_to_start(tmp_path, monkeypatch):
+    monkeypatch.delenv("IP_HASH_SALT", raising=False)
+    with pytest.raises(RuntimeError, match="IP_HASH_SALT"):
+        create_app(str(tmp_path / "calls.db"))
 
 
 def test_health_and_methodology(tmp_path):

@@ -28,15 +28,18 @@ def create_app(
     db_path: str = "settlequote.db",
     *,
     free_limit: int = FREE_LIMIT,
-    salt: str = "settlequote",
+    salt: str | None = None,
     pay_to: str | None = None,
     network: str = "eip155:84532",
     facilitator_url: str = "https://x402.org/facilitator",
 ) -> FastAPI:
+    resolved_salt = salt or os.environ.get("IP_HASH_SALT")
+    if not resolved_salt:
+        raise RuntimeError("IP_HASH_SALT is required")
     app = FastAPI(title="SettleQuote", version="0.1.0")
     app.state.db = connect(db_path)
     app.state.free_limit = free_limit
-    app.state.salt = salt
+    app.state.salt = resolved_salt
     app.state.pay_to = pay_to
     app.state.network = network if pay_to else "unconfigured"
 

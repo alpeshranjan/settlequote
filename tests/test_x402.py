@@ -21,7 +21,7 @@ PAY_TO = to_checksum_address("0x" + "11" * 20)
 
 
 def test_unpaid_quote_returns_x402_payment_required(tmp_path):
-    app = create_app(str(tmp_path / "calls.db"), pay_to=PAY_TO)
+    app = create_app(str(tmp_path / "calls.db"), pay_to=PAY_TO, salt="test")
     response = TestClient(app).post("/v1/quote", json=friday_payload())
     assert response.status_code == 402
     assert "recommendation" not in response.text

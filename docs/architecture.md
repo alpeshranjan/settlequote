@@ -49,7 +49,7 @@ Eligibility follows the receiver. A bank account sees only fiat rails. A Base ad
 
 When `PAY_TO` is set, x402 middleware wraps only `POST /v1/quote`. The scheme is `exact` on `eip155:84532`, price `$0.005` (5000 atomic units of USDC). The facilitator URL defaults to `https://x402.org/facilitator`. `sync_facilitator_on_start` is true so the server loads supported schemes before the first request. Headers are the v2 names: `PAYMENT-REQUIRED`, `PAYMENT-SIGNATURE`, `PAYMENT-RESPONSE`.
 
-A 402 is logged as `payment_required`. A 200 after settlement is logged as `paid`, with the transaction id and a hash of the payer address. Raw IPs and full payer addresses are not stored. The free-tier identity is `Fly-Client-IP` on Fly. `X-Forwarded-For` is not read. The hash salt is `IP_HASH_SALT`, and the process will not start without it. The free route never enters the payment middleware.
+A 402 is logged as `payment_required`. A 200 after settlement is logged as `paid`, with the transaction id and a hash of the payer address. Raw IPs and full payer addresses are not stored. The free-tier identity is `Fly-Client-IP` only when `FLY_APP_NAME` is set. `X-Forwarded-For` is not read. The hash salt is `IP_HASH_SALT`, and the process will not start without it. The free route never enters the payment middleware.
 
 The Fly app mounts a volume at `/data` and sets `SQLITE_PATH=/data/settlequote.db`. Counts on the public dashboard are that database. A settlement made against a local MCP server does not appear there.
 

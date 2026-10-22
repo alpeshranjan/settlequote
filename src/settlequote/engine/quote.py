@@ -5,6 +5,7 @@ Those rails are 24/7 only if both institutions participate, and this tool
 does not check that. They stay in the response, marked conditional.
 """
 
+import math
 import re
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -30,6 +31,45 @@ CONDITIONAL = {"rtp", "fednow"}
 MAX_AMOUNT = Decimal("100000000")
 MIN_AMOUNT = Decimal("0.01")
 _AMOUNT_TEXT = re.compile(r"^(?:0|[1-9]\d*)(?:\.\d{1,2})?$")
+_AMOUNT_ERROR = "amount_usd must be dollars with at most 2 decimal places, minimum 0.01."
+# US civil time zones. A receiving bank outside this set is out of scope.
+_US_ZONES = frozenset(
+    {
+        "America/New_York",
+        "America/Detroit",
+        "America/Kentucky/Louisville",
+        "America/Kentucky/Monticello",
+        "America/Indiana/Indianapolis",
+        "America/Indiana/Vincennes",
+        "America/Indiana/Winamac",
+        "America/Indiana/Marengo",
+        "America/Indiana/Petersburg",
+        "America/Indiana/Vevay",
+        "America/Chicago",
+        "America/Indiana/Tell_City",
+        "America/Indiana/Knox",
+        "America/Menominee",
+        "America/North_Dakota/Center",
+        "America/North_Dakota/New_Salem",
+        "America/North_Dakota/Beulah",
+        "America/Denver",
+        "America/Boise",
+        "America/Phoenix",
+        "America/Los_Angeles",
+        "America/Anchorage",
+        "America/Juneau",
+        "America/Sitka",
+        "America/Metlakatla",
+        "America/Yakutat",
+        "America/Nome",
+        "America/Adak",
+        "Pacific/Honolulu",
+        "America/Puerto_Rico",
+        "Pacific/Guam",
+        "Pacific/Saipan",
+        "Pacific/Pago_Pago",
+    }
+)
 
 RECEIVER_RAILS = {
     "us_bank_account": set(FIAT),
@@ -131,26 +171,32 @@ def quote(
 
 
 def _amount(raw: object) -> Decimal:
-    if not isinstance(raw, str) or _AMOUNT_TEXT.fullmatch(raw) is None:
-        raise QuoteError(
-            "invalid_amount",
-            "amount_usd must be a decimal string with at most 2 places, minimum 0.01.",
-        )
+    text = _amount_text(raw)
+    if _AMOUNT_TEXT.fullmatch(text) is None:
+        raise QuoteError("invalid_amount", _AMOUNT_ERROR)
     try:
-        amount = Decimal(raw)
+        amount = Decimal(text)
     except InvalidOperation as exc:
-        raise QuoteError(
-            "invalid_amount",
-            "amount_usd must be a decimal string with at most 2 places, minimum 0.01.",
-        ) from exc
+        raise QuoteError("invalid_amount", _AMOUNT_ERROR) from exc
     if not amount.is_finite() or amount < MIN_AMOUNT:
-        raise QuoteError(
-            "invalid_amount",
-            "amount_usd must be a decimal string with at most 2 places, minimum 0.01.",
-        )
+        raise QuoteError("invalid_amount", _AMOUNT_ERROR)
     if amount > MAX_AMOUNT:
         raise QuoteError("amount_too_large", "amount_usd exceeds 100000000.")
     return amount
+
+
+def _amount_text(raw: object) -> str:
+    if isinstance(raw, bool):
+        raise QuoteError("invalid_amount", _AMOUNT_ERROR)
+    if isinstance(raw, int):
+        return str(raw)
+    if isinstance(raw, float):
+        if not math.isfinite(raw):
+            raise QuoteError("invalid_amount", _AMOUNT_ERROR)
+        return format(Decimal(str(raw)), "f")
+    if isinstance(raw, str):
+        return raw
+    raise QuoteError("invalid_amount", _AMOUNT_ERROR)
 
 
 def _submitted(payload: dict, now: datetime | None) -> datetime:
@@ -199,12 +245,18 @@ def _clock_phrase(hhmm: str) -> str:
 def _receiver_zone(raw: object) -> ZoneInfo:
     if raw is None:
         return ET
-    if not isinstance(raw, str) or not raw.strip():
-        raise QuoteError("invalid_receiver_timezone", "receiver_timezone must be an IANA name.")
+    if not isinstance(raw, str) or raw not in _US_ZONES:
+        raise QuoteError(
+            "invalid_receiver_timezone",
+            "receiver_timezone must be a US time zone, such as America/Los_Angeles.",
+        )
     try:
         return ZoneInfo(raw)
-    except ZoneInfoNotFoundError as exc:
-        raise QuoteError("invalid_receiver_timezone", "receiver_timezone must be an IANA name.") from exc
+    except (ZoneInfoNotFoundError, ValueError) as exc:
+        raise QuoteError(
+            "invalid_receiver_timezone",
+            "receiver_timezone must be a US time zone, such as America/Los_Angeles.",
+        ) from exc
 
 
 def _receiver(raw: object) -> str:
@@ -432,12 +484,13 @@ def _fedwire(submitted: datetime, deadline: datetime, rules: dict) -> RailResult
     availability = originator_open if settlement < originator_open else settlement
     window = {"status": status, "cutoff": iso(cutoff_shown), "next_open": iso(next_open)}
     if availability != settlement:
+        window["network_settlement"] = iso(settlement)
         window["originator_open"] = iso(originator_open)
     return _finish(
         "fedwire",
         submitted=submitted,
         deadline=deadline,
-        settlement=settlement,
+        settlement=availability,
         availability=availability,
         operator=_operator(rules, "fedwire"),
         rules=rules,

@@ -118,7 +118,14 @@ def _register_paid_quote(mcp: FastMCP, pay_to: str, network: str, facilitator_ur
                 input_schema={
                     "type": "object",
                     "properties": {
-                        "amount_usd": {"type": "string"},
+                        "amount_usd": {
+                            "description": (
+                                "Dollars, minimum 0.01, at most 2 decimal places. "
+                                'Prefer a string such as "12000.00". A JSON number is accepted '
+                                "when it has at most 2 decimal places."
+                            ),
+                            "anyOf": [{"type": "string"}, {"type": "number"}],
+                        },
                         "deadline": {"type": "string"},
                         "submitted_at": {"type": "string"},
                         "receiver": {
@@ -153,7 +160,7 @@ def _register_paid_quote(mcp: FastMCP, pay_to: str, network: str, facilitator_ur
     )
     @paid
     async def quote_payment_rails(
-        amount_usd: str,
+        amount_usd: str | int | float,
         deadline: str,
         receiver: str,
         submitted_at: str = "",

@@ -15,9 +15,7 @@ It is a network-window estimate. It is not a quote from a bank, and it does not 
 | Network | Base Sepolia (`eip155:84532`) |
 | Facilitator | `https://x402.org/facilitator` |
 
-On 2026-10-22 the public scoreboard showed 6 calls, 3 payment challenges, 1 paid settlement, $0.0050 USDC received, and a 0% error rate. Those counts are only calls that hit the public server. The live numbers stay on the scoreboard.
-
-An unpaid `POST /v1/quote` returns HTTP 402 and a `PAYMENT-REQUIRED` header. The ranking is not in that body. A paid call returns it. `POST /v1/quote/free` allows 10 successful quotes per UTC day and does not use x402. On Fly the caller is `Fly-Client-IP`. `X-Forwarded-For` is ignored. The address is stored as a hash salted with the `IP_HASH_SALT` secret.
+An unpaid `POST /v1/quote` returns HTTP 402 and a `PAYMENT-REQUIRED` header. The ranking is not in that body. A paid call returns it. `POST /v1/quote/free` allows 10 successful quotes per UTC day and does not use x402. On Fly the caller is `Fly-Client-IP`, and that header is ignored anywhere else. `X-Forwarded-For` is ignored. The address is stored as a hash salted with the `IP_HASH_SALT` secret.
 
 One paid call to the public API settled on Base Sepolia. That is the call the scoreboard counts:
 
@@ -26,8 +24,6 @@ One paid call to the public API settled on Base Sepolia. That is the call the sc
 A quote paid against a local MCP server is a different database and does not show up there.
 
 The settlement is a real facilitator payment of testnet USDC. Base mainnet is off. Turning the public server on to mainnet needs a Coinbase CDP API key and real Base USDC in the buyer wallet. Neither is in place, so the live 402 stays on Sepolia.
-
-The commit list is [18 commits on main](https://github.com/alpeshranjan/settlequote/commits/main), all dated 2026-10-22. The first, `f89a51c`, is the engine, the frozen-clock tests, the HTTP API, and x402 in one snapshot. The later commits are the review: timestamp error codes, the Fedwire caveat read from `windows.json`, the page at `/`, the free-tier client IP, the hash salt, rejected `NaN` amounts, the Sunday-night originator open, and the receiver timezone.
 
 How the process is split is in [docs/architecture.md](docs/architecture.md).
 
@@ -44,7 +40,7 @@ How the process is split is in [docs/architecture.md](docs/architecture.md).
 
 `receiver` is `us_bank_account`, `base_address`, `solana_address`, or `either`. Timestamps must include an offset. `submitted_at` may be omitted when the caller passes `now` to the Python function. The HTTP API uses the request clock.
 
-The deadline is judged on `funds_availability`. Cost rank uses `operator_fee` only. Customer fee bands are returned as labeled estimates and never decide the winner. RTP and FedNow stay in `rails` but do not win unless no non-conditional rail meets the deadline. Optional `receiver_timezone` is an IANA name. It moves ACH and same-day availability to the receiving bank's local time. Fed transmission deadlines stay in Eastern time. The default is `America/New_York`.
+The deadline is judged on `funds_availability`. Cost rank uses `operator_fee` only. Customer fee bands are returned as labeled estimates and never decide the winner. RTP and FedNow stay in `rails` but do not win unless no non-conditional rail meets the deadline. Optional `receiver_timezone` is a US time zone, such as `America/Los_Angeles`. `UTC` and `Asia/Tokyo` are rejected. It moves ACH and same-day availability to the receiving bank's local time. Fed transmission deadlines stay in Eastern time. The default is `America/New_York`. `amount_usd` is dollars with at most two decimal places. A JSON number is accepted when it meets that rule.
 
 ```bash
 curl -s https://settlequote.fly.dev/v1/quote/free \
@@ -87,7 +83,7 @@ Fedwire's network open is 9:00 p.m. ET on the previous calendar day, including S
 - Quoting an originator's earlier cutoff as the Fed's. Bridge and Augustus publish their own earlier windows for their customers.
 - Treating 6:00 p.m. ET as the current Fedwire customer cutoff. The page transcribed on 2026-10-21 says 6:45 p.m. ET for a core customer transfer (`pacs.008`, CTRC), inclusive of that minute. Bank-to-bank transfers cut off at 7:00 p.m. ET and are not modeled. The sending-bank caveat is built from `customer_cutoff_local` in `windows.json`.
 
-Operator fees were transcribed on 2026-10-21 and are the 2026 Fed list prices. A quote whose `submitted_at` is more than 400 days after `reviewed_on` is rejected as stale.
+Operator fees were transcribed on 2026-10-21 and are the 2026 Fed list prices. A quote whose `submitted_at` is more than 400 days after `reviewed_on` is still returned, with a `rules_stale` caveat.
 
 ## Run locally
 

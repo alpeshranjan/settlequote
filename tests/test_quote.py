@@ -101,7 +101,9 @@ def test_customer_wire_cutoff_is_inclusive_of_645_and_closed_at_646():
     wire = rail(missed, "fedwire")
     assert wire["meets_deadline"] is False
     assert wire["window"]["status"] == "closed"
-    assert wire["settlement_eta"] == at(2026, 10, 25, 21, 0).isoformat()
+    assert wire["window"]["next_open"] == at(2026, 10, 25, 21, 0).isoformat()
+    assert wire["settlement_eta"] == at(2026, 10, 26, 9, 0).isoformat()
+    assert wire["funds_availability_eta"] == wire["settlement_eta"]
     assert missed["recommendation"]["rail"] == "fednow"
     assert missed["recommendation"]["conditional"] is True
 
@@ -120,8 +122,9 @@ def test_sunday_network_open_is_not_treated_as_a_sending_bank_open():
         }
     )
     wire = rail(result, "fedwire")
-    assert wire["settlement_eta"] == at(2026, 10, 25, 21, 0).isoformat()
-    assert wire["funds_availability_eta"] == at(2026, 10, 26, 9, 0).isoformat()
+    assert wire["window"]["network_settlement"] == at(2026, 10, 25, 21, 0).isoformat()
+    assert wire["settlement_eta"] == at(2026, 10, 26, 9, 0).isoformat()
+    assert wire["funds_availability_eta"] == wire["settlement_eta"]
     assert wire["meets_deadline"] is False
     assert rail(result, "ach")["meets_deadline"] is False
     open_local = load_rules()["windows"]["fedwire"]["originator_open_local"]
@@ -147,7 +150,8 @@ def test_saturday_rolls_to_the_next_banking_day():
     )
     assert rail(result, "ach")["settlement_eta"] == at(2026, 10, 26, 8, 30).isoformat()
     assert rail(result, "same_day_ach")["settlement_eta"] == at(2026, 10, 26, 13, 0).isoformat()
-    assert rail(result, "fedwire")["settlement_eta"] == at(2026, 10, 25, 21, 0).isoformat()
+    assert rail(result, "fedwire")["window"]["next_open"] == at(2026, 10, 25, 21, 0).isoformat()
+    assert rail(result, "fedwire")["settlement_eta"] == at(2026, 10, 26, 9, 0).isoformat()
 
 
 def test_fed_holiday_is_not_a_settlement_day():
@@ -273,6 +277,19 @@ def test_deadline_before_submission_and_bad_amount_are_errors():
     assert amount.value.code == "invalid_amount"
 
 
+def test_json_number_amount_is_accepted_when_it_is_cents():
+    submitted = at(2026, 10, 23, 16, 50)
+    result = quote(
+        {
+            "amount_usd": 12000,
+            "submitted_at": submitted.isoformat(),
+            "deadline": at(2026, 10, 23, 19, 0).isoformat(),
+            "receiver": "us_bank_account",
+        }
+    )
+    assert result["recommendation"]["rail"] == "fedwire"
+
+
 @pytest.mark.parametrize("raw", ["NaN", "sNaN", "Infinity", "1e-30", "0.001", "0.00", "1.001"])
 def test_non_cent_amounts_are_rejected(raw):
     with pytest.raises(QuoteError) as exc:
@@ -384,3 +401,7 @@ def test_receiver_timezone_moves_ach_availability_only():
     with pytest.raises(QuoteError) as bad_zone:
         quote({**payload, "receiver_timezone": "Not/AZone"})
     assert bad_zone.value.code == "invalid_receiver_timezone"
+    for raw in ("../x", "UTC", "Asia/Tokyo"):
+        with pytest.raises(QuoteError) as rejected:
+            quote({**payload, "receiver_timezone": raw})
+        assert rejected.value.code == "invalid_receiver_timezone"

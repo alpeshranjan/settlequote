@@ -44,7 +44,14 @@ def build_payment_middleware(pay_to: str, network: str, facilitator_url: str):
                 input_schema={
                     "type": "object",
                     "properties": {
-                        "amount_usd": {"type": "string"},
+                        "amount_usd": {
+                            "description": (
+                                "Dollars, minimum 0.01, at most 2 decimal places. "
+                                'Prefer a string such as "12000.00". A JSON number is accepted '
+                                "when it has at most 2 decimal places."
+                            ),
+                            "anyOf": [{"type": "string"}, {"type": "number"}],
+                        },
                         "deadline": {"type": "string"},
                         "submitted_at": {"type": "string"},
                         "receiver": {
